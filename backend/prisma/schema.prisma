@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String
+  description String
+  location    String?
+  payRange    String?  @map("pay_range")
+  platform    String?  // 'indeed' | 'linkedin'
+  platformId  String?  @map("platform_id")
+  status      String   @default("open")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  candidates  Candidate[]
+  decisions   Decision[]
+  outreach    Outreach[]
+  atsLog      AtsLog[]
+
+  @@map("jobs")
+}
+
+model Candidate {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId            String?   @map("job_id") @db.Uuid
+  source           String?   // 'indeed' | 'linkedin' | 'paste'
+  sourceId         String?   @map("source_id")
+  name             String?
+  email            String?
+  phone            String?
+  location         String?
+  distanceMi       Decimal?  @map("distance_mi")
+  resumeLastActive DateTime? @map("resume_last_active") @db.Date
+  rawText          String?   @map("raw_text")
+  jobsJson         Json?     @map("jobs_json")
+  skillsJson       Json?     @map("skills_json")
+  pdfKey           String?   @map("pdf_key")
+  matchScore       Int?      @map("match_score")
+  willingScore     Int?      @map("willing_score")
+  aiSummary        String?   @map("ai_summary")
+  flagsJson        Json?     @map("flags_json")
+  scoredAt         DateTime? @map("scored_at") @db.Timestamptz
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  job       Job?       @relation(fields: [jobId], references: [id])
+  decisions Decision[]
+  outreach  Outreach[]
+  atsLog    AtsLog[]
+
+  @@map("candidates")
+}
+
+model Decision {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  candidateId String   @map("candidate_id") @db.Uuid
+  jobId       String   @map("job_id") @db.Uuid
+  decision    String   // 'keep' | 'pin' | 'skip'
+  pinNote     String?  @map("pin_note")
+  pinRemind   DateTime? @map("pin_remind") @db.Date
+  decidedAt   DateTime @default(now()) @map("decided_at") @db.Timestamptz
+
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+  job       Job       @relation(fields: [jobId], references: [id])
+
+  @@map("decisions")
+}
+
+model Outreach {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  candidateId String    @map("candidate_id") @db.Uuid
+  jobId       String    @map("job_id") @db.Uuid
+  channel     String?   // 'indeed_message' | 'linkedin_message' | 'sms' | 'call'
+  draft       String?
+  sentAt      DateTime? @map("sent_at") @db.Timestamptz
+  response    String?   // 'replied' | 'no_response' | 'not_interested'
+  credited    Boolean   @default(false)
+
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+  job       Job       @relation(fields: [jobId], references: [id])
+
+  @@map("outreach")
+}
+
+model AtsLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  candidateId String   @map("candidate_id") @db.Uuid
+  jobId       String   @map("job_id") @db.Uuid
+  atsId       String?  @map("ats_id")
+  stage       String   // 'submitted' | 'interviewing' | 'hired' | 'pcf_created' | 'pinned'
+  loggedAt    DateTime @default(now()) @map("logged_at") @db.Timestamptz
+  notes       String?
+
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+  job       Job       @relation(fields: [jobId], references: [id])
+
+  @@map("ats_log")
+}
