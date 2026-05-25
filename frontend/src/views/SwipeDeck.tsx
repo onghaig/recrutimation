@@ -55,7 +55,7 @@ function DraggableCard({ candidate, onKeep, onPin, onSkip }: CardDragProps) {
       dragConstraints={{ left: 0, right: 0 }}
       dragElastic={0.9}
       onDragEnd={handleDragEnd}
-      className="cursor-grab active:cursor-grabbing"
+      className="relative z-10 cursor-grab active:cursor-grabbing"
     >
       {/* Keep indicator */}
       <motion.div
@@ -181,7 +181,7 @@ export default function SwipeDeck() {
       </div>
 
       {/* Card stack */}
-      <div className="relative w-full max-w-sm mb-6">
+      <div className="relative w-full max-w-lg mb-6">
         {/* Ghost cards underneath */}
         {candidates[index + 1] && (
           <div className="absolute inset-0 scale-95 translate-y-2 opacity-40 pointer-events-none">
@@ -201,7 +201,7 @@ export default function SwipeDeck() {
 
       {/* PDF viewer toggle */}
       {current.pdfKey && (
-        <div className="w-full max-w-sm mb-4">
+        <div className="w-full max-w-lg mb-4">
           {showPdf ? (
             <PdfViewer candidateId={current.id} />
           ) : (

@@ -20,6 +20,7 @@
     "@fastify/multipart": "^8.3.0",
     "@prisma/client": "^5.15.0",
     "bullmq": "^5.7.10",
+    "dotenv": "^17.4.2",
     "fastify": "^4.28.1",
     "ioredis": "^5.4.1",
     "openai": "^4.52.7",

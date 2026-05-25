@@ -1,6 +1,12 @@
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+// NVIDIA NIM (free tier) — swap back to Anthropic by reinstating the
+// Anthropic client, apiKey: ANTHROPIC_API_KEY, model: "claude-sonnet-4-20250514"
+// Claude gives noticeably better willingness scoring on edge cases
+const openai = new OpenAI({
+  baseURL: 'https://integrate.api.nvidia.com/v1',
+  apiKey: process.env.NVIDIA_API_KEY,
+})
 
 export interface WillingnessResult {
   willing_score: number
@@ -45,13 +51,13 @@ Penalise heavily for: overqualification, large pay gap upward, long commute for 
 resume inactive > 3 months, very recent job start (they just started somewhere else).
 Reward: exact title match, local, recently active, similar pay history, gaps in employment.`
 
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+  const message = await openai.chat.completions.create({
+    model: 'meta/llama-3.3-70b-instruct',
     max_tokens: 512,
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  const text = message.choices[0].message.content ?? ''
   // Strip any markdown fences if present
   const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
   return JSON.parse(cleaned) as WillingnessResult
@@ -68,13 +74,13 @@ Do not use filler phrases like "dynamic professional" or "results-driven". Max 2
 Candidate profile:
 ${rawText.slice(0, 3000)}`
 
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+  const message = await openai.chat.completions.create({
+    model: 'meta/llama-3.3-70b-instruct',
     max_tokens: 100,
     messages: [{ role: 'user', content: prompt }],
   })
 
-  return message.content[0].type === 'text' ? message.content[0].text.trim() : ''
+  return (message.choices[0].message.content ?? '').trim()
 }
 
 /**
@@ -102,13 +108,13 @@ Return JSON only — no prose:
 Profile text:
 ${rawText.slice(0, 8000)}`
 
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+  const message = await openai.chat.completions.create({
+    model: 'meta/llama-3.3-70b-instruct',
     max_tokens: 1024,
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  const text = message.choices[0].message.content ?? ''
   const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
   return JSON.parse(cleaned)
 }

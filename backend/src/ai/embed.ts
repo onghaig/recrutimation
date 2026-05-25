@@ -1,16 +1,34 @@
 import OpenAI from 'openai'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+// NVIDIA NIM (free tier) — swap back to OpenAI by setting baseURL to
+// "https://api.openai.com/v1", apiKey to OPENAI_API_KEY, and model to
+// "text-embedding-3-small" for better production quality
+const openai = new OpenAI({
+  baseURL: 'https://integrate.api.nvidia.com/v1',
+  apiKey: process.env.NVIDIA_API_KEY,
+})
+
+// nv-embedqa-e5-v5 requires input_type, which is not part of the standard
+// OpenAI SDK EmbeddingCreateParams — use an intersection type to pass it through.
+type NvidiaEmbeddingParams = Parameters<typeof openai.embeddings.create>[0] & {
+  input_type: 'query' | 'passage'
+}
 
 /**
- * Embed a text string using OpenAI text-embedding-3-small.
- * Returns a float array (1536 dims).
+ * Embed a text string using nvidia/nv-embedqa-e5-v5.
+ * input_type must be 'query' for job descriptions and 'passage' for resume text —
+ * nv-embedqa-e5-v5 is asymmetric and uses different embedding spaces for each.
+ * Returns a float array.
  */
-export async function embed(text: string): Promise<number[]> {
+export async function embed(
+  text: string,
+  input_type: 'query' | 'passage'
+): Promise<number[]> {
   const response = await openai.embeddings.create({
-    model: 'text-embedding-3-small',
+    model: 'nvidia/nv-embedqa-e5-v5',
     input: text.slice(0, 8000), // stay within token limit
-  })
+    input_type,
+  } as NvidiaEmbeddingParams)
   return response.data[0].embedding
 }
 
@@ -38,8 +56,8 @@ export async function computeMatchScore(
   resumeText: string
 ): Promise<number> {
   const [jobEmbedding, candidateEmbedding] = await Promise.all([
-    embed(jobDescription),
-    embed(resumeText),
+    embed(jobDescription, 'query'),    // job description is the search query
+    embed(resumeText, 'passage'),      // resume is the document being retrieved
   ])
   const similarity = cosineSimilarity(jobEmbedding, candidateEmbedding)
   // cosine similarity is -1 to 1; scale to 0-100
